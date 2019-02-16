@@ -9,10 +9,13 @@ from google.auth.transport.requests import Request
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly']
 
+
 def main():
     """Shows basic usage of the Drive v3 API.
-    Prints the names and ids of the first 10 files the user has access to.
+    Prints the names and ids of all files the user has access to, in passes
+    Assumes all files can be managed in single session
     """
+    page_size = 1000
     creds = None
     # The file token.pickle stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -35,18 +38,24 @@ def main():
     service = build('drive', 'v3', credentials=creds)
 
     # Call the Drive v3 API
-    results = service.files().list(
-        pageSize=10, fields="nextPageToken, files(id, name)").execute()
+    request = service.files().list(
+        pageSize=page_size, fields="nextPageToken, files(id, name)")
 
+    page = 0
+    while request:
+        response = request.execute()
+        items = response.get('files', [])
+        if not items:
+            print('No files found.')
+            return
+        else:
+            print('Files: {page}'.format(page=page))
+            page += 1
+            for item in items:
+                print(u'{0} ({1})'.format(item['name'], item['id']))
+            request = service.files().list_next(previous_request=request,
+                                                previous_response=response)
 
-    items = results.get('files', [])
-
-    if not items:
-        print('No files found.')
-    else:
-        print('Files:')
-        for item in items:
-            print(u'{0} ({1})'.format(item['name'], item['id']))
 
 if __name__ == '__main__':
     main()
