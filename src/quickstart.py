@@ -39,7 +39,9 @@ def main():
 
     # Call the Drive v3 API
     request = service.files().list(
-        pageSize=page_size, fields="nextPageToken, files(id, name)")
+        pageSize=page_size,
+        fields="nextPageToken, files(id, name)",
+        q="mimeType='image/jpeg'")
 
     page = 0
     while request:
