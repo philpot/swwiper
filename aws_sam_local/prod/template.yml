@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: Temporarily stores adaptive packets in aurora
+
+Resources:
+  AdaptivePacketHandler:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: lambda_function.lambda_handler
+      Runtime: python2.7
+      CodeUri: ../../src
+      Description: 'This lambda triggers when an adaptive packet is written to s3. It converts that packet into a database row in RDS.'
+      MemorySize: 1024
+      Timeout: 300
+      Role: arn:aws:iam::484569644056:role/service-role/mastering-math-lambda
+      Events:
+        EventsDataMasteryNewMathAdaptivePacket:
+          Type: SNS
+          Properties:
+            Topic: arn:aws:sns:us-west-2:484569644056:data-mastery-NewMathAdaptivePacket
+        EventsDataMasteryNewMathAdaptivePacketReplay:
+          Type: SNS
+          Properties:
+            Topic: arn:aws:sns:us-west-2:484569644056:data-mastery-NewMathAdaptivePacket-replay
+
+      VpcConfig:
+        SecurityGroupIds:
+          - sg-09411172
+        SubnetIds:
+          - subnet-06a72c61
+          - subnet-9eb914d7
+          - subnet-f1f3f0a9
+      Environment:
+        Variables:
+          BUCKET_NAME: data-mastery
+          DATABASE_PROFILE: prod_mastery
+          USERDATA_PROFILE: user_data
+          ACCOUNTDATA_PROFILE: account_data
+          SUFFIX: ''
+
+  SubscriptionDataMasteryNewMathAdaptivePacket:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: lambda
+      Endpoint: !GetAtt
+        - AdaptivePacketHandler
+        - Arn
+      TopicArn: arn:aws:sns:us-west-2:484569644056:data-mastery-NewMathAdaptivePacket
+
+  SubscriptionDataMasteryNewMathAdaptivePacketReplay:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: lambda
+      Endpoint: !GetAtt
+        - AdaptivePacketHandler
+        - Arn
+      TopicArn: arn:aws:sns:us-west-2:484569644056:data-mastery-NewMathAdaptivePacket-replay
+
+  AdaptivePacketHandlerAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Join [ '-', [ !Ref AdaptivePacketHandler, 'LambdaErrorsAlarm' ] ]
+      AlarmDescription: Lambda has more than 10 errors in the last 15 minute.
+      AlarmActions:
+        - arn:aws:sns:us-west-2:484569644056:data-mastering-math_alarm
+      OKActions:
+         - arn:aws:sns:us-west-2:484569644056:data-mastering-math_alarm
+      ComparisonOperator: GreaterThanThreshold
+      EvaluationPeriods: 1
+      Dimensions:
+      - Name: FunctionName
+        Value: !Ref AdaptivePacketHandler
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Period: 900
+      Statistic: Sum
+      Threshold: 10

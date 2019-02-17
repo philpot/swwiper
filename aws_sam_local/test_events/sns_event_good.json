@@ -1,0 +1,22 @@
+{
+  "Records": [
+    {
+      "EventVersion": "1.0",
+      "EventSubscriptionArn": "arn:aws:sns:us-west-2:616571706735:data-dev-academy-UserInferfaceClickEvent:e200f256-4c2c-4488-97ab-ac2b1ae8f2f5",
+      "EventSource": "aws:sns",
+      "Sns": {
+        "SignatureVersion": "1",
+        "Timestamp": "2018-02-02T17:25:24.357Z",
+        "Signature": "bMv5yJDJOrjFir6w0sb145LbpNWsQ8+Kjo8GUS3sho71+HboPOvktOiICCcUS1lExn/4LtAyOoFs2dSpCheDcZUF2H8ahoty4ZxrF4Ia1zKftAllTQzOv0+mXTMlhBlwE5dS2NbtISzrRaR6HLphtXtciLznF7lu+QscH415R9vKFG12DplrVazxJSL8YzoIDIqwTvi2hKUm0oMkDuZs0ukwq2IFJ+xMQfJFpztcob/0pnP3OHODNCZVAbH3XcdAd23KZckhCd2khjsYbElvCC2cX2GyOUVE9rvrOd3/r+lpSBPcEMCzA7xjHMv/TVYgkQyQDi31AnnHXuFP9ly7Fg==",
+        "SigningCertUrl": "https://sns.us-west-2.amazonaws.com/SimpleNotificationService-433026a4050d206028891664da859041.pem",
+        "MessageId": "e1ce2de5-5ee2-5207-adc1-7f0bffa69fd2",
+        "Message": "{\"Records\":[{\"eventVersion\":\"2.0\",\"eventSource\":\"aws:s3\",\"awsRegion\":\"us-west-2\",\"eventTime\":\"2018-02-02T17:25:24.251Z\",\"eventName\":\"ObjectCreated:Put\",\"userIdentity\":{\"principalId\":\"AWS:AIDAJRNL3S3XYF4MHVXNU\"},\"requestParameters\":{\"sourceIPAddress\":\"47.148.53.12\"},\"responseElements\":{\"x-amz-request-id\":\"EAE0E5D4990D1D10\",\"x-amz-id-2\":\"wRuRdlhMp3YB3nzz/3BRg0U/FNuyasf8/Uhukv7i5ClXwmxSyMQkkHjVvWgvKJrEjnTsx0PaokM=\"},\"s3\":{\"s3SchemaVersion\":\"1.0\",\"configurationId\":\"NTFmMzBiOGYtNGNmZC00MzkxLWFjMzktNDUyM2NlYmM2ZjM1\",\"bucket\":{\"name\":\"dev-data-mastery\",\"ownerIdentity\":{\"principalId\":\"A312QKU26UJ01S\"},\"arn\":\"arn:aws:s3:::data-dev-academy.aofl.com\"},\"object\":{\"key\":\"lake/com/app_math/test_data/unity_gameplay_session_id-345935501545.adaptive\",\"size\":396,\"eTag\":\"629964e23a2a1fabeb0ec242fee8423f\",\"sequencer\":\"005A749F042E3C1C51\"}}}]}",
+        "MessageAttributes": {},
+        "Type": "Notification",
+        "UnsubscribeUrl": "https://sns.us-west-2.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-west-2:616571706735:data-dev-academy-UserInferfaceClickEvent:e200f256-4c2c-4488-97ab-ac2b1ae8f2f5",
+        "TopicArn": "arn:aws:sns:us-west-2:616571706735:data-dev-academy-UserInferfaceClickEvent",
+        "Subject": "Amazon S3 Notification"
+      }
+    }
+  ]
+}
