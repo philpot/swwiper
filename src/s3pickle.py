@@ -27,4 +27,6 @@ class S3Pickle(object):
         return deserialized
 
     def put(self, content):
-        return None
+        serialized = pickle.dumps(content)
+        client.put_object(Bucket=self.bucket, Key=self.key, Body=serialized)
+        return True
