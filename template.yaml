@@ -29,6 +29,23 @@ Resources:
                         Path: /hello
                         Method: get
 
+    GoodbyeWorldFunction:
+        Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+        Properties:
+            CodeUri: goodbye_world/
+            Handler: app.lambda_handler
+            Runtime: python2.7
+            Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
+                Variables:
+                    PARAM1: VALUE
+            Events:
+                GoodbyeWorld:
+                    Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+                    Properties:
+                        Path: /goodbye
+                        Method: get
+
+
 Outputs:
 
     HelloWorldApi:
@@ -42,3 +59,15 @@ Outputs:
     HelloWorldFunctionIamRole:
       Description: "Implicit IAM Role created for Hello World function"
       Value: !GetAtt HelloWorldFunctionRole.Arn
+
+    GoodbyeWorldApi:
+      Description: "API Gateway endpoint URL for Prod stage for Goodbye World function"
+      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/goodbye/"
+
+    GoodbyeWorldFunction:
+      Description: "Goodbye World Lambda Function ARN"
+      Value: !GetAtt GoodbyeWorldFunction.Arn
+
+    GoodbyeWorldFunctionIamRole:
+      Description: "Implicit IAM Role created for Goodbye World function"
+      Value: !GetAtt GoodbyeWorldFunctionRole.Arn
