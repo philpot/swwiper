@@ -2,6 +2,12 @@ from __future__ import print_function
 
 import json
 import boto3
+import logging
+
+FORMAT = "[%(levelname)s]\t[%(name)s]\t%(asctime)s.%(msecs)dZ\t%(message)s\n"
+logging.basicConfig(format=FORMAT, datefmt="%Y-%m-%dT%H:%M:%S")
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 client = boto3.client('s3')
 
@@ -21,6 +27,9 @@ class S3Json(object):
             self.key = key
 
     def get(self):
+        logger.info("S3Json({bucket}, {key}).get()"
+                    .format(bucket=self.bucket,
+                            key=self.key))
         response = client.get_object(Bucket=self.bucket, Key=self.key)
         serialized = response['Body'].read().decode("utf-8")
         deserialized = json.loads(serialized)
