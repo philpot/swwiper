@@ -45,6 +45,22 @@ Resources:
                         Path: /goodbye
                         Method: get
 
+    ListDriveFunction:
+        Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+        Properties:
+            CodeUri: list_drive/
+            Handler: app.lambda_handler
+            Runtime: python2.7
+            Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
+                Variables:
+                    PARAM1: VALUE
+            Events:
+                ListDrive:
+                    Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+                    Properties:
+                        Path: /list
+                        Method: get
+
 
 Outputs:
 
@@ -71,3 +87,15 @@ Outputs:
     GoodbyeWorldFunctionIamRole:
       Description: "Implicit IAM Role created for Goodbye World function"
       Value: !GetAtt GoodbyeWorldFunctionRole.Arn
+
+    ListDriveApi:
+      Description: "API Gateway endpoint URL for Prod stage for List Drive function"
+      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/list/"
+
+    ListDriveFunction:
+      Description: "List Drive Lambda Function ARN"
+      Value: !GetAtt ListDriveFunction.Arn
+
+    ListDriveFunctionIamRole:
+      Description: "Implicit IAM Role created for List Drive function"
+      Value: !GetAtt ListDriveFunctionRole.Arn
