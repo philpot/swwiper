@@ -1,2 +1,0 @@
-# swwiper
-no swwiping
