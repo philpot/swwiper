@@ -1,13 +1,22 @@
 from __future__ import print_function
 
+import sys
 import datetime
 import pickle
 import os.path
 import boto3
+import argparse
+import logging
 
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+
+FORMAT = "[%(levelname)s]\t[%(name)s]\t%(asctime)s.%(msecs)dZ\t%(message)s\n"
+logging.basicConfig(format=FORMAT, datefmt="%Y-%m-%dT%H:%M:%S")
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly']
@@ -28,7 +37,7 @@ sqs = boto3.client('sqs')
 # print(queue.attributes.get('DelaySeconds'))
 
 
-def main():
+def enqueue_tasks(limit=None):
     """Enqueue all files belonging to this user
     """
     page_size = 1000
@@ -89,10 +98,28 @@ def main():
                         },
                     MessageBody=(item['name'])
                 )
+                if limit:
+                    limit -= 1
+                    if limit <= 0:
+                        return
             request = service.files().list_next(previous_request=request,
                                                 previous_response=response)
             page += 1
 
 
-if __name__ == '__main__':
-    main()
+parser = argparse.ArgumentParser()
+parser.add_argument('--limit',
+                    default=400,
+                    type=int,
+                    help='num IDs to queue')
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+    args = parser.parse_args(argv[1:])
+    return enqueue_tasks(**(vars(args)))
+
+
+if __name__ == "__main__":
+    logger.setLevel(logging.INFO)
+    sys.exit(main(argv=sys.argv))
