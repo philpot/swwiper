@@ -48,8 +48,8 @@ sqs = boto3.client('sqs')
 def enqueue_tasks(limit=None):
     """Enqueue all files belonging to this user
     """
-    # page_size = 1000
-    page_size = 100
+    page_size = 1000
+    # page_size = 3
     creds = None
     # The file token.pickle stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -81,6 +81,7 @@ def enqueue_tasks(limit=None):
 
 
     page = 0
+    emitted = 0
     while request:
         response = request.execute()
         items = response.get('files', [])
@@ -90,13 +91,13 @@ def enqueue_tasks(limit=None):
         else:
             print('Page: {page}'.format(page=page))
             for item in items:
-                d = (b64_to_long(item['id']) >> 2)
+                d = b64_to_long(item['id']) >> 2
                 digest = d % MODULUS
                 # Insert message into SQS queue
-                logger.info("Insert {i} into {q}"
-                            .format(i=item['id'],
+                logger.info("{e}. Insert {i} into {q}"
+                            .format(e=emitted,
+                                    i=item['id'],
                                     q=QUEUE_URLS[digest]))
-                continue
                 response = sqs.send_message(
                     QueueUrl=QUEUE_URLS[digest],
                     DelaySeconds=0,
@@ -117,8 +118,10 @@ def enqueue_tasks(limit=None):
                     limit -= 1
                     if limit <= 0:
                         return
+                emitted += 1
             request = service.files().list_next(previous_request=request,
                                                 previous_response=response)
+            print("Next request {r}".format(r=request))
             page += 1
 
 
