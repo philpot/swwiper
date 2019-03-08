@@ -12,7 +12,7 @@ from collections import Counter
 SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly']
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 SCOPES = ['https://www.googleapis.com/auth/drive']
-MODULUS = 11
+MODULUS = 3
 
 # DUMMY_FOLDER_ID = "1nf5BbaW_y7nAr98ae8zSH7thseFcfeaG"
 
@@ -63,7 +63,7 @@ def main():
         request = service.files().list(
             pageSize=page_size,
             # fields="nextPageToken, files(id, name)",
-            fields="nextPageToken, files(id, name, parents)",
+            fields="nextPageToken, files(id, name, parents, mimeType)",
             # q="mimeType='image/jpeg'"
             # q="mimeType='application/vnd.google-apps.folder' and name contains 'Dummy Files'"
             # doesn't work, should
@@ -85,7 +85,7 @@ def main():
             q="not 'root' in parents"
         )
 
-        show = 500
+        show = 20
         page = 0
         while request:
             response = request.execute()
@@ -100,10 +100,11 @@ def main():
                     d = (b64_to_long(item['id']) >> 2)
                     m = d % MODULUS
                     c[m] += 1
-                    print(u'{n} ({i} = {d}) {m}'.format(n=item['name'],
-                                                        i=item['id'],
-                                                        d=d,
-                                                        m=m))
+                    print(u'{n} {t} ({i} = {d}) {m}'.format(n=item['name'],
+                                                            i=item['id'],
+                                                            d=d,
+                                                            m=m,
+                                                            t=item['mimeType']))
                     show -= 1
                     if show <= 0:
                         return
