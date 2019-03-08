@@ -125,9 +125,11 @@ def lambda_handler(event, context):
 
     for record in event.get("Records", []):
         queue_arn = record['eventSourceARN']
-        logger.info("from queue {arn}".format(arn=queue_arn))
         id = record["messageAttributes"]["Id"]["stringValue"]
         name = record["messageAttributes"]["Name"]["stringValue"]
+        logger.info("{n} from queue {arn}".format(
+            n=name,
+            arn=queue_arn))
         # when it was last fetched
         timestamp = record["messageAttributes"]["Timestamp"]["stringValue"]
         if False:
