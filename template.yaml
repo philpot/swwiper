@@ -61,6 +61,24 @@ Resources:
                         Path: /list
                         Method: get
 
+    ProcessTaskFunction:
+        Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+        Properties:
+            CodeUri: process_task/
+            Handler: app.lambda_handler
+            Runtime: python2.7
+            Role: arn:aws:iam::322501851660:role/vdf-swwiper-lambda-exec-role
+            Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
+                Variables:
+                    PARAM1: VALUE
+            Events:
+                ProcessTask:
+                    Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+                    Properties:
+                        Path: /process
+                        Method: get
+
+
 
 Outputs:
 
@@ -99,3 +117,12 @@ Outputs:
     ListDriveFunctionIamRole:
       Description: "Implicit IAM Role created for List Drive function"
       Value: !GetAtt ListDriveFunctionRole.Arn
+
+
+    ProcessTaskApi:
+      Description: "API Gateway endpoint URL for Prod stage for Process Task function"
+      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/process/"
+
+    ProcessTaskFunction:
+      Description: "Process Task Lambda Function ARN"
+      Value: !GetAtt ProcessTaskFunction.Arn

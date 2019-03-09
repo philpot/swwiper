@@ -8,7 +8,12 @@ from google.auth.transport.requests import Request
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly']
+SCOPES = ['https://www.googleapis.com/auth/drive.file']
+SCOPES = ['https://www.googleapis.com/auth/drive']
 
+DUMMY_FOLDER_ID = "1nf5BbaW_y7nAr98ae8zSH7thseFcfeaG"
+
+MY_FOLDER_ID = "1wYz2JCM1tYFmwkWNBJyChYLSwv5bro1wdDs93jVbMJo"
 
 def main():
     """Shows basic usage of the Drive v3 API.
@@ -20,8 +25,8 @@ def main():
     # The file token.pickle stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
+    if os.path.exists('../vault/token.pickle'):
+        with open('../vault/token.pickle', 'rb') as token:
             creds = pickle.load(token)
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
@@ -29,19 +34,49 @@ def main():
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
+                '../vault/credentials.json', SCOPES)
             creds = flow.run_local_server()
         # Save the credentials for the next run
-        with open('token.pickle', 'wb') as token:
+        with open('../vault/token.pickle', 'wb') as token:
             pickle.dump(creds, token)
 
     service = build('drive', 'v3', credentials=creds)
 
+    # Should be able to do all these:
+    # - list all files containing a string in the file body (not just in the name)
+    # - file count within a folder
+    # Specifically for our use case, we might like to
+    # - list all folders, recursively
+    # - list all objects within a folder
+    # so we could parallelize the bulk loading by folder (or folder group)
+
+
+    show = 10
+
     # Call the Drive v3 API
     request = service.files().list(
         pageSize=page_size,
-        fields="nextPageToken, files(id, name)",
-        q="mimeType='image/jpeg'")
+        # fields="nextPageToken, files(id, name)",
+        fields="nextPageToken, files(id, name, parents)",
+        # q="mimeType='image/jpeg'"
+        # q="mimeType='application/vnd.google-apps.folder' and name contains 'Dummy Files'"
+        # doesn't work, should
+        # q="'{id}' in parents".format(id=DUMMY_FOLDER_ID)
+        # full text seems to search ONLY name, not actual text
+        # q="fullText contains 'cyan'"
+        # full text seems to search ONLY name, not actual text
+        # q="fullText contains 'very'"
+        # works
+        # q="'root' in parents"
+        # did not work
+        # q="mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false"
+        # q = "name='Dummy Folder' and mimeType='application/vnd.google-apps.folder'"
+        # did not work
+        # q="'{myid}' in parents".format(myid=MY_FOLDER_ID)
+        # q="mimeType='application/vnd.google-apps.folder'"
+        # q="'0AHs_lHBwwE6AUk9PVA' in parents"
+        q="'0AHs_lHBwwE6AUk9PVA' in parents and mimeType='application/vnd.google-apps.folder'"
+    )
 
     page = 0
     while request:
@@ -55,6 +90,10 @@ def main():
             page += 1
             for item in items:
                 print(u'{0} ({1})'.format(item['name'], item['id']))
+                print(item)
+                show -= 1
+                if show <= 0:
+                    return
             request = service.files().list_next(previous_request=request,
                                                 previous_response=response)
 

@@ -1,20 +1,38 @@
 from __future__ import print_function
 
+import sys
 import datetime
 import pickle
 import os.path
 import boto3
+import argparse
+import logging
+from collections import Counter
 
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 
+from examine import b64_to_long
+
+FORMAT = "[%(levelname)s]\t[%(name)s]\t%(asctime)s.%(msecs)dZ\t%(message)s\n"
+logging.basicConfig(format=FORMAT, datefmt="%Y-%m-%dT%H:%M:%S")
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+MODULUS = 3
+
+
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly']
 
-QUEUE_NAME = "vdf-informatics-swwiper-tasks"
-QUEUE_ARN = "arn:aws:sqs:us-west-2:322501851660:vdf-informatics-swwiper-tasks"
-QUEUE_URL = "https://sqs.us-west-2.amazonaws.com/322501851660/vdf-informatics-swwiper-tasks"
+# QUEUE_NAME = "vdf-informatics-swwiper-tasks"
+# QUEUE_ARN = "arn:aws:sqs:us-west-2:322501851660:vdf-informatics-swwiper-tasks"
+# QUEUE_URL = "https://sqs.us-west-2.amazonaws.com/322501851660/vdf-informatics-swwiper-tasks"
+
+QUEUE_URLS = {0: "https://sqs.us-west-2.amazonaws.com/322501851660/vdf-informatics-swwiper-tasks-00",
+              1: "https://sqs.us-west-2.amazonaws.com/322501851660/vdf-informatics-swwiper-tasks-01",
+              2: "https://sqs.us-west-2.amazonaws.com/322501851660/vdf-informatics-swwiper-tasks-02"}
 
 # Get the service resource
 # sqs = boto3.resource('sqs')
@@ -28,10 +46,11 @@ sqs = boto3.client('sqs')
 # print(queue.attributes.get('DelaySeconds'))
 
 
-def main():
+def enqueue_tasks(limit=None):
     """Enqueue all files belonging to this user
     """
-    page_size = 1000
+    page_size = 100
+    # page_size = 3
     creds = None
     # The file token.pickle stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -53,28 +72,51 @@ def main():
 
     service = build('drive', 'v3', credentials=creds)
 
+    phash = Counter()
+
+    def show_phash(phash):
+        for (k, v) in phash.iteritems():
+            # Call the Drive v3 API
+            request = service.files().get(fileId=k)
+            response = request.execute()
+            item = response
+            name = item['name']
+            print(name, v)
+
     # Call the Drive v3 API
     request = service.files().list(
         pageSize=page_size,
-        fields="nextPageToken, files(id, name)")
+        fields="nextPageToken, files(id, name, parents)",
+        # q="'{f}' in parents and mimeType='application/vnd.google-apps.folder'".format(f=MY_FOLDER_ID)
+        q="not 'root' in parents and mimeType='*/*'"
+        )
+
 
     page = 0
-    seen = False
+    emitted = 0
     while request:
         response = request.execute()
         items = response.get('files', [])
         if not items:
             print('No files found.')
+            show_phash(phash)
             return
         else:
             print('Page: {page}'.format(page=page))
             for item in items:
-                if page == 0 and not seen:
-                    print(item)
-                    seen = True
+                d = b64_to_long(item['id']) >> 2
+                digest = d % MODULUS
                 # Insert message into SQS queue
-                response = sqs.send_message(
-                    QueueUrl=QUEUE_URL,
+                logger.info("{e}. Insert {n} into {q}"
+                            .format(e=emitted,
+                                    n=item['name'],
+                                    q=QUEUE_URLS[digest]))
+                logger.info("Parents of {n} are {p}"
+                            .format(n=item['name'],
+                                    p=item['parents']))
+                phash[item['parents'][0]] += 1
+                qresponse = sqs.send_message(
+                    QueueUrl=QUEUE_URLS[digest],
                     DelaySeconds=0,
                     MessageAttributes={
                         'Name': {
@@ -89,10 +131,32 @@ def main():
                         },
                     MessageBody=(item['name'])
                 )
+                if limit:
+                    limit -= 1
+                    if limit <= 0:
+                        show_phash(phash)
+                        return
+                emitted += 1
             request = service.files().list_next(previous_request=request,
                                                 previous_response=response)
+            print("Next request {r}".format(r=request))
             page += 1
 
 
-if __name__ == '__main__':
-    main()
+parser = argparse.ArgumentParser()
+parser.add_argument('--limit',
+                    default=400,
+                    type=int,
+                    help='num IDs to queue')
+
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+    args = parser.parse_args(argv[1:])
+    return enqueue_tasks(**(vars(args)))
+
+
+if __name__ == "__main__":
+    logger.setLevel(logging.INFO)
+    sys.exit(main(argv=sys.argv))
