@@ -7,6 +7,7 @@ import os.path
 import boto3
 import argparse
 import logging
+from collections import Counter
 
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -48,7 +49,7 @@ sqs = boto3.client('sqs')
 def enqueue_tasks(limit=None):
     """Enqueue all files belonging to this user
     """
-    page_size = 1000
+    page_size = 100
     # page_size = 3
     creds = None
     # The file token.pickle stores the user's access and refresh tokens, and is
@@ -71,10 +72,21 @@ def enqueue_tasks(limit=None):
 
     service = build('drive', 'v3', credentials=creds)
 
+    phash = Counter()
+
+    def show_phash(phash):
+        for (k, v) in phash.iteritems():
+            # Call the Drive v3 API
+            request = service.files().get(fileId=k)
+            response = request.execute()
+            item = response
+            name = item['name']
+            print(name, v)
+
     # Call the Drive v3 API
     request = service.files().list(
         pageSize=page_size,
-        fields="nextPageToken, files(id, name)",
+        fields="nextPageToken, files(id, name, parents)",
         # q="'{f}' in parents and mimeType='application/vnd.google-apps.folder'".format(f=MY_FOLDER_ID)
         q="not 'root' in parents and mimeType='*/*'"
         )
@@ -87,6 +99,7 @@ def enqueue_tasks(limit=None):
         items = response.get('files', [])
         if not items:
             print('No files found.')
+            show_phash(phash)
             return
         else:
             print('Page: {page}'.format(page=page))
@@ -94,11 +107,15 @@ def enqueue_tasks(limit=None):
                 d = b64_to_long(item['id']) >> 2
                 digest = d % MODULUS
                 # Insert message into SQS queue
-                logger.info("{e}. Insert {i} into {q}"
+                logger.info("{e}. Insert {n} into {q}"
                             .format(e=emitted,
-                                    i=item['id'],
+                                    n=item['name'],
                                     q=QUEUE_URLS[digest]))
-                response = sqs.send_message(
+                logger.info("Parents of {n} are {p}"
+                            .format(n=item['name'],
+                                    p=item['parents']))
+                phash[item['parents'][0]] += 1
+                qresponse = sqs.send_message(
                     QueueUrl=QUEUE_URLS[digest],
                     DelaySeconds=0,
                     MessageAttributes={
@@ -117,6 +134,7 @@ def enqueue_tasks(limit=None):
                 if limit:
                     limit -= 1
                     if limit <= 0:
+                        show_phash(phash)
                         return
                 emitted += 1
             request = service.files().list_next(previous_request=request,
